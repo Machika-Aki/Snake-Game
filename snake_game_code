@@ -1,0 +1,159 @@
+import pygame
+import sys
+import random
+
+# Initialize Pygame
+pygame.init()
+
+# Colors
+LIGHT_GREEN = (70, 180, 46)
+DARK_GREEN = (67, 135, 51)
+PURPLE = (128, 0, 128)
+RED = (255, 0, 0)
+WHITE = (255, 255, 255)
+BLACK = (0, 0, 0)
+
+# Screen settings
+BLOCK_SIZE = 20
+GRID_WIDTH = 40
+GRID_HEIGHT = 30
+WINDOW_WIDTH = GRID_WIDTH * BLOCK_SIZE
+WINDOW_HEIGHT = GRID_HEIGHT * BLOCK_SIZE
+
+# Font settings
+FONT = pygame.font.SysFont('Wide Latin', 25)
+BUTTON_FONT = pygame.font.SysFont('Wide Latin', 20)
+
+# Create screen
+screen = pygame.display.set_mode((WINDOW_WIDTH, WINDOW_HEIGHT))
+pygame.display.set_caption('✨👾Snek Game👾✨')
+
+# Draw checkered background
+def draw_background():
+    for y in range(GRID_HEIGHT):
+        for x in range(GRID_WIDTH):
+            rect = pygame.Rect(x * BLOCK_SIZE, y * BLOCK_SIZE, BLOCK_SIZE, BLOCK_SIZE)
+            if (x + y) % 2 == 0:
+                pygame.draw.rect(screen, LIGHT_GREEN, rect)
+            else:
+                pygame.draw.rect(screen, DARK_GREEN, rect)
+
+# Draw snake
+def draw_snake(snake):
+    head = snake[0]
+    pygame.draw.rect(screen, PURPLE, pygame.Rect(head[0] * BLOCK_SIZE, head[1] * BLOCK_SIZE, BLOCK_SIZE, BLOCK_SIZE))
+    # Draw googly eyes, pupils, and tongue
+    eye_radius = 4
+    pupil_radius = 1
+    tongue_width = 2
+    tongue_length = 10
+    pygame.draw.circle(screen, WHITE, (head[0] * BLOCK_SIZE + 6, head[1] * BLOCK_SIZE + 6), eye_radius)
+    pygame.draw.circle(screen, WHITE, (head[0] * BLOCK_SIZE + 14, head[1] * BLOCK_SIZE + 6), eye_radius)
+    pygame.draw.circle(screen, BLACK, (head[0] * BLOCK_SIZE + 6, head[1] * BLOCK_SIZE + 6), pupil_radius)
+    pygame.draw.circle(screen, BLACK, (head[0] * BLOCK_SIZE + 14, head[1] * BLOCK_SIZE + 6), pupil_radius)
+    pygame.draw.line(screen, RED, (head[0] * BLOCK_SIZE + 10, head[1] * BLOCK_SIZE + 15),
+                                    (head[0] * BLOCK_SIZE + 10, head[1] * BLOCK_SIZE + 15 + tongue_length), tongue_width)
+    # Draw remaining segments
+    for segment in snake[1:]:
+        pygame.draw.rect(screen, PURPLE, pygame.Rect(segment[0] * BLOCK_SIZE, segment[1] * BLOCK_SIZE, BLOCK_SIZE, BLOCK_SIZE))
+
+# Draw apple
+def draw_apple(position):
+    pygame.draw.circle(screen, RED, (position[0] * BLOCK_SIZE + BLOCK_SIZE // 2, position[1] * BLOCK_SIZE + BLOCK_SIZE // 2), BLOCK_SIZE // 2)
+
+# Draw score
+def draw_score(score):
+    score_surface = FONT.render(f'Score: {score}', True, (0, 0, 0))
+    screen.blit(score_surface, (330, 10))
+
+# Draw game over screen
+def draw_game_over(score):
+    for i in range(8): # Flashing game over text
+        game_over_surface = FONT.render(f'Game Over! Final Score: {score}', True, (0, 0, 0) if i % 2 == 0 else WHITE)
+        screen.blit(game_over_surface, (WINDOW_WIDTH // 2 - game_over_surface.get_width() // 2, WINDOW_HEIGHT // 2 - game_over_surface.get_height() // 2))
+        pygame.display.flip()
+        pygame.time.wait(500)
+    pygame.time.wait(3000)  # Wait for 3 seconds
+    draw_restart_button()
+
+def draw_restart_button():
+    button_rect = pygame.Rect(WINDOW_WIDTH // 2 - 100, WINDOW_HEIGHT // 2 + 50, 200, 50)
+    pygame.draw.rect(screen, RED, button_rect)
+    button_text = BUTTON_FONT.render('Play Again?', True, WHITE)
+    screen.blit(button_text, (WINDOW_WIDTH // 2 - button_text.get_width() // 2, WINDOW_HEIGHT // 2 + 50 + button_text.get_height() // 4))
+    pygame.display.update(button_rect)
+
+def draw_pause_button(paused):
+    button_rect = pygame.Rect(10, 10, 140, 40)
+    pygame.draw.rect(screen, WHITE, button_rect)
+    button_text = BUTTON_FONT.render('Pause' if not paused else 'Resume', True, BLACK)
+    screen.blit(button_text, (20, 20))
+    pygame.display.update(button_rect)
+
+# Main game loop
+def main():
+    clock = pygame.time.Clock()
+    snake = [(10, 10), (9, 10), (8, 10)]
+    direction = (1, 0)
+    apple = (15, 10)
+    score = 0
+    paused = False
+    game_over = False
+
+    while True:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                sys.exit()
+            elif event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_UP and direction != (0, 1):
+                    direction = (0, -1)
+                elif event.key == pygame.K_DOWN and direction != (0, -1):
+                    direction = (0, 1)
+                elif event.key == pygame.K_LEFT and direction != (1, 0):
+                    direction = (-1, 0)
+                elif event.key == pygame.K_RIGHT and direction != (-1, 0):
+                    direction = (1, 0)
+                elif event.key == pygame.K_p:
+                    paused = not paused
+            elif event.type == pygame.MOUSEBUTTONDOWN:
+                mouse_pos = event.pos
+                if WINDOW_WIDTH // 2 - 100 < mouse_pos[0] < WINDOW_WIDTH // 2 + 100 and WINDOW_HEIGHT // 2 + 50 < mouse_pos[1] < WINDOW_HEIGHT // 2 + 100 and game_over:
+                    main()
+                elif 10 < mouse_pos[0] < 150 and 10 < mouse_pos[1] < 50:
+                    paused = not paused
+
+        if not paused and not game_over:
+            new_head = (snake[0][0] + direction[0], snake[0][1] + direction[1])
+
+            # Wrap the snake around the edges
+            new_head = (new_head[0] % GRID_WIDTH, new_head[1] % GRID_HEIGHT)
+
+            if new_head in snake:
+                game_over = True
+                draw_background()
+                draw_snake(snake)
+                draw_apple(apple)
+                draw_score(score)
+                draw_pause_button(paused)
+                draw_game_over(score)
+                continue
+
+            snake.insert(0, new_head)
+            if new_head == apple:
+                score += 1
+                while apple in snake:
+                    apple = (random.randint(0, GRID_WIDTH - 1), random.randint(0, GRID_HEIGHT - 1))
+            else:
+                snake.pop()
+
+        draw_background()
+        draw_snake(snake)
+        draw_apple(apple)
+        draw_score(score)
+        draw_pause_button(paused)
+        pygame.display.flip()
+        clock.tick(10)
+
+if __name__ == '__main__':
+    main()
