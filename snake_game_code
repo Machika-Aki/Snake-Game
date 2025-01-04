@@ -86,7 +86,7 @@ def draw_game_over(score):
 
 # Draw pause button
 def draw_pause_button(paused):
-    button_rect = pygame.Rect(10, 10, 140, 40)
+    button_rect = pygame.Rect(10, 10, 120, 30)
     pygame.draw.rect(screen, WHITE, button_rect)
     button_text = RESTART_FONT.render('Pause' if not paused else 'Resume', True, BLACK)
     screen.blit(button_text, (20, 20))
